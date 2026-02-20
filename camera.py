@@ -44,7 +44,7 @@ options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=2)
 hands = vision.HandLandmarker.create_from_options(options)
 
 # Initialize variables for location calculations
-mid_x, mid_y, avg_x, avg_y = 0, 0, 0, 0
+mid_x, mid_y, avg_x, avg_y, prev_x, prev_y = 0, 0, 0, 0, 0, 0
 
 # Main loop
 while running:
@@ -56,34 +56,40 @@ while running:
 
         if result.hand_landmarks:
             height, width, _ = frame.shape
-            for hand_landmarks in result.hand_landmarks:
-                for landmark in hand_landmarks:
-                    x = int(landmark.x * width)
-                    y = int(landmark.y * height)
-                    cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
+            # for hand_landmarks in result.hand_landmarks:
+            #     for landmark in hand_landmarks:
+            #         x = int(landmark.x * width)
+            #         y = int(landmark.y * height)
+            #         cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
 
-                for connection in HAND_CONNECTIONS:
-                    start_idx, end_idx = connection
-                    start = hand_landmarks[start_idx]
-                    end = hand_landmarks[end_idx]
-                    start_x = int(start.x * width)
-                    start_y = int(start.y * height)
-                    end_x = int(end.x * width)
-                    end_y = int(end.y * height)
-                    cv2.line(frame, (start_x, start_y), (end_x, end_y), (0, 255, 0), 2)
+            #     for connection in HAND_CONNECTIONS:
+            #         start_idx, end_idx = connection
+            #         start = hand_landmarks[start_idx]
+            #         end = hand_landmarks[end_idx]
+            #         start_x = int(start.x * width)
+            #         start_y = int(start.y * height)
+            #         end_x = int(end.x * width)
+            #         end_y = int(end.y * height)
+            #         cv2.line(frame, (start_x, start_y), (end_x, end_y), (0, 255, 0), 2)
 
-            avg_x = hand_landmarks[9].x
-            avg_y = hand_landmarks[9].y
-            hand_mid_x = int(avg_x * width)
-            hand_mid_y = int(avg_y * height)
-            cv2.circle(frame, (hand_mid_x, hand_mid_y), 10, (255, 0, 0), -1)
+            avg_x = result.hand_landmarks[0][9].x
+            avg_y = result.hand_landmarks[0][9].y
+            # hand_mid_x = int(avg_x * width)
+            # hand_mid_y = int(avg_y * height)
+            # cv2.circle(frame, (hand_mid_x, hand_mid_y), 10, (255, 0, 0), -1)
 
-            mid_x = int((2*avg_x - 1) * screen_width * 0.5)
-            mid_y = int((2*avg_y - 1) * screen_height * 0.5)
+            mid_x = int((avg_x-0.5) * screen_width)
+            mid_y = int((avg_y-0.5) * screen_height)
 
         cv2.imshow('Webcam', frame)
 
-        pag.moveTo(screen_width//2 - mid_x * 1.5, screen_height//2 + mid_y * 1.5)
+        # Calculate distance using distance formula: sqrt((x2-x1)^2 + (y2-y1)^2)
+        distance = ((mid_x - prev_x)**2 + (mid_y - prev_y)**2)**0.5
+        threshold = ((screen_width*0.005)**2 + (screen_height*0.005)**2)**0.5
+        
+        if distance > threshold:
+            pag.moveTo(screen_width//2 - mid_x * 1.5, screen_height//2 + mid_y * 1.5)
+            prev_x, prev_y = mid_x, mid_y
         
         root.update()
 
