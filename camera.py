@@ -45,7 +45,6 @@ hands = vision.HandLandmarker.create_from_options(options)
 
 # Initialize variables for location calculations
 mid_x, mid_y, avg_x, avg_y = 0, 0, 0, 0
-prev_mid_x, prev_mid_y = mid_x, mid_y
 
 # Main loop
 while running:
@@ -56,9 +55,8 @@ while running:
         result = hands.detect(mp_image)
 
         if result.hand_landmarks:
+            height, width, _ = frame.shape
             for hand_landmarks in result.hand_landmarks:
-
-                height, width, _ = frame.shape
                 for landmark in hand_landmarks:
                     x = int(landmark.x * width)
                     y = int(landmark.y * height)
@@ -80,19 +78,14 @@ while running:
             hand_mid_y = int(avg_y * height)
             cv2.circle(frame, (hand_mid_x, hand_mid_y), 10, (255, 0, 0), -1)
 
-            mid_x = int(avg_x * screen_width)
-            mid_y = int(avg_y * screen_height)
+            mid_x = int((2*avg_x - 1) * screen_width * 0.5)
+            mid_y = int((2*avg_y - 1) * screen_height * 0.5)
 
         cv2.imshow('Webcam', frame)
 
-        pag.move(prev_mid_x-mid_x, mid_y-prev_mid_y)
-
-        prev_mid_x, prev_mid_y = mid_x, mid_y
+        pag.moveTo(screen_width//2 - mid_x * 1.5, screen_height//2 + mid_y * 1.5)
         
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
         root.update()
-        
 
 cap.release()
 root.destroy()
