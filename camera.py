@@ -15,7 +15,7 @@ HAND_CONNECTIONS = [
 ]
 
 # Initialize webcam
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # Define screen dimensions
 root = tk.Tk()
@@ -32,6 +32,10 @@ def quit_app(event):
 root.bind('<Control-q>', quit_app)
 root.withdraw()
 
+# Define mouse up and down booleans
+L_mouse_down = False
+R_mouse_down = False
+
 # Allow for mouse to reach corner of screen without triggering failsafe
 pag.FAILSAFE = False
 
@@ -45,7 +49,7 @@ hands = vision.HandLandmarker.create_from_options(options)
 
 # Initialize variables for location calculations
 mid_x, mid_y, avg_x, avg_y, prev_x, prev_y = 0, 0, 0, 0, 0, 0
-threshold = ((screen_width)**2 + (screen_height)**2)**0.5 * 0.0005
+threshold = ((screen_width)**2 + (screen_height)**2)**0.5
 
 # Main loop
 while running:
@@ -87,19 +91,31 @@ while running:
             middle_tip = result.hand_landmarks[0][12]
             I_pinch_distance = ((thumb_tip.x - index_tip.x)**2 + (thumb_tip.y - index_tip.y)**2 + (thumb_tip.z - index_tip.z)**2)**0.5
             M_pinch_distance = ((thumb_tip.x - middle_tip.x)**2 + (thumb_tip.y - middle_tip.y)**2 + (thumb_tip.z - middle_tip.z)**2)**0.5
-            print(f"Middle pinch Z: {middle_tip.z}")
+            pinch_threshold = threshold * 0.0005 * abs(middle_tip.z)
 
-            if I_pinch_distance < threshold * abs(middle_tip.z):
-                pag.click()
+            if I_pinch_distance < pinch_threshold:
+                if not L_mouse_down:
+                    pag.mouseDown()
+                    L_mouse_down = True
+            else:
+                if L_mouse_down:
+                    pag.mouseUp()
+                    L_mouse_down = False
             
-            if M_pinch_distance < threshold * abs(middle_tip.z):
-                pag.rightClick()
+            if M_pinch_distance < pinch_threshold:
+                if not R_mouse_down:
+                    pag.mouseDown(button='right')
+                    R_mouse_down = True
+            else:
+                if R_mouse_down:
+                    pag.mouseUp(button='right')
+                    R_mouse_down = False
 
         # cv2.imshow('Webcam', frame)
 
         move_distance = ((mid_x - prev_x)**2 + (mid_y - prev_y)**2)**0.5
         
-        if move_distance > threshold:
+        if move_distance > threshold * 0.003:
             pag.moveTo(screen_width//2 - mid_x * 1.5, screen_height//2 + mid_y * 1.5)
             prev_x, prev_y = mid_x, mid_y
 
