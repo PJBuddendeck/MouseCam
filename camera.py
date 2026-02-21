@@ -4,6 +4,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import tkinter as tk
 import pyautogui as pag
+import keyboard
 
 # Define hand connections based on MediaPipe Hand Landmarks
 HAND_CONNECTIONS = [
@@ -25,19 +26,15 @@ screen_height = root.winfo_screenheight()
 # Define quit flag
 running = True
 
-def quit_app(event):
+def quit_app():
     global running
     running = False
 
-root.bind('<Control-q>', quit_app)
-root.withdraw()
+keyboard.add_hotkey('ctrl+q', quit_app)
 
 # Define mouse up and down booleans
 L_mouse_down = False
 R_mouse_down = False
-
-# Allow for mouse to reach corner of screen without triggering failsafe
-pag.FAILSAFE = False
 
 # cv2.namedWindow('Webcam', cv2.WINDOW_NORMAL)
 # cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -121,6 +118,10 @@ while running:
 
         root.update()
 
+pag.mouseUp()
+pag.mouseUp(button='right')
+
 cap.release()
+hands.close()
 root.destroy()
 # cv2.destroyAllWindows()
