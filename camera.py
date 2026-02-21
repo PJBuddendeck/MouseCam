@@ -35,8 +35,8 @@ root.withdraw()
 # Allow for mouse to reach corner of screen without triggering failsafe
 pag.FAILSAFE = False
 
-cv2.namedWindow('Webcam', cv2.WINDOW_NORMAL)
-cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+# cv2.namedWindow('Webcam', cv2.WINDOW_NORMAL)
+# cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 # Define MediaPipe Hand Landmarker
 base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
@@ -45,6 +45,7 @@ hands = vision.HandLandmarker.create_from_options(options)
 
 # Initialize variables for location calculations
 mid_x, mid_y, avg_x, avg_y, prev_x, prev_y = 0, 0, 0, 0, 0, 0
+threshold = ((screen_width)**2 + (screen_height)**2)**0.5 * 0.0005
 
 # Main loop
 while running:
@@ -81,18 +82,29 @@ while running:
             mid_x = int((avg_x-0.5) * screen_width)
             mid_y = int((avg_y-0.5) * screen_height)
 
-        cv2.imshow('Webcam', frame)
+            thumb_tip = result.hand_landmarks[0][4]
+            index_tip = result.hand_landmarks[0][8]
+            middle_tip = result.hand_landmarks[0][12]
+            I_pinch_distance = ((thumb_tip.x - index_tip.x)**2 + (thumb_tip.y - index_tip.y)**2 + (thumb_tip.z - index_tip.z)**2)**0.5
+            M_pinch_distance = ((thumb_tip.x - middle_tip.x)**2 + (thumb_tip.y - middle_tip.y)**2 + (thumb_tip.z - middle_tip.z)**2)**0.5
+            print(f"Middle pinch Z: {middle_tip.z}")
 
-        # Calculate distance using distance formula: sqrt((x2-x1)^2 + (y2-y1)^2)
-        distance = ((mid_x - prev_x)**2 + (mid_y - prev_y)**2)**0.5
-        threshold = ((screen_width*0.005)**2 + (screen_height*0.005)**2)**0.5
+            if I_pinch_distance < threshold * abs(middle_tip.z):
+                pag.click()
+            
+            if M_pinch_distance < threshold * abs(middle_tip.z):
+                pag.rightClick()
+
+        # cv2.imshow('Webcam', frame)
+
+        move_distance = ((mid_x - prev_x)**2 + (mid_y - prev_y)**2)**0.5
         
-        if distance > threshold:
+        if move_distance > threshold:
             pag.moveTo(screen_width//2 - mid_x * 1.5, screen_height//2 + mid_y * 1.5)
             prev_x, prev_y = mid_x, mid_y
-        
+
         root.update()
 
 cap.release()
 root.destroy()
-cv2.destroyAllWindows()
+# cv2.destroyAllWindows()
